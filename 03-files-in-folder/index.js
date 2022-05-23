@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-// const fsPromises = require('fs/promises');
 
 const searchFile = (way)=>{
     fs.readdir(way, {withFileTypes: true}, (err, files)=>{
@@ -10,7 +9,7 @@ const searchFile = (way)=>{
                 let str = '';
                 let fileName = item.name.split('.')[0];
                 let fileExtensions = path.extname(item.name).split('.').join('');
-                fs.stat('03-files-in-folder/secret-folder/'+item.name, true, (err, data)=>{
+                fs.stat(path.join(way, item.name), true, (err, data)=>{
                     if(err) return console.log(err);
                     let fileSize = data.size;
                     str = fileName + ' - ' + fileExtensions + ' - ' + fileSize + 'byt';
@@ -22,4 +21,4 @@ const searchFile = (way)=>{
         });
     });
 };
-searchFile('03-files-in-folder/secret-folder');
+searchFile(path.join(__dirname, 'secret-folder'));

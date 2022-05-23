@@ -17,4 +17,3 @@ const copyDir  = (way)=>{
     });
 };
 copyDir ('04-copy-directory/files');
-console.log('Копирования файлов завершен!');

@@ -11,7 +11,7 @@ tempHtml.pipe(html);
 
 const css = fs.createWriteStream(path.join(__dirname, 'project-dist', 'style.css'));
 
-const copyAssets  = (way, folder)=>{
+const copyAssets  = (way, folder='')=>{
     fs.readdir(way, {withFileTypes: true}, (err, files)=>{
         if(err) return err;
         files.forEach(item=>{
@@ -50,21 +50,31 @@ function saveToIndex (str)  {
     let html = fs.createWriteStream(path.join(__dirname, 'project-dist', 'index.html'));
     html.write(str);
 }
-fs.readFile(path.join(__dirname, 'template.html'), 'utf-8', (err, data)=>{
+fs.readFile(path.join(__dirname, 'template.html'), 'utf-8', async (err, data)=>{
     if(err)console.log(err);
     let templateOrg = data;
     let allTemplateTags = data.match(/{{(.*?)}}/g).map( function(val) {
         return val;
     });
 
-    allTemplateTags.forEach(item => {
+    let resolve, promise = new Promise((res)=>{
+        resolve = res;
+    });
+
+    allTemplateTags.forEach((item,index) => {
         let component_name = item.replace('{{', '').replace('}}', '');
-    
+
         fs.readFile(path.join(__dirname, 'components', `${component_name}.html` ), 'utf-8', (err, data)=>{
             if(err)console.log(err);
             
             templateOrg = templateOrg.replace(item, data);
-            saveToIndex(templateOrg);
+            
+            if(allTemplateTags.length -1 === index){
+                resolve(templateOrg);
+            }
         }); 
+    });
+    promise.then(c =>{
+        saveToIndex(c);
     });
 });
