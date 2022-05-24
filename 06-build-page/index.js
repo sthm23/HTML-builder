@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsPromise = require('fs/promises');
 const path = require('path');
 
 fs.mkdir(path.join(__dirname, 'project-dist'), {recursive:true}, err=>err);
@@ -11,20 +12,24 @@ tempHtml.pipe(html);
 
 const css = fs.createWriteStream(path.join(__dirname, 'project-dist', 'style.css'));
 
-const copyAssets  = (way, folder='')=>{
-    fs.readdir(way, {withFileTypes: true}, (err, files)=>{
-        if(err) return err;
-        files.forEach(item=>{
-            if(item.isFile()){
-                fs.copyFile(way + '/' + item.name, wayCopyFolder + '/' + folder + '/' + item.name, err=>err);
-            }else{
-                fs.mkdir(path.join(__dirname, 'project-dist', 'assets', item.name), {recursive:true}, err=>err);
-                copyAssets(way + '/' + item.name, item.name);
-            }
-        });
+function folder(way, copyWay){ 
+    fsPromise.rm(copyWay, {recursive: true, force: true,})
+    .then(() => {
+        fsPromise.mkdir(copyWay, {recursive: true});
+        fsPromise.readdir(way, {withFileTypes: true})
+            .then((files) => {
+                files.forEach( (item)=>{
+                    if (item.isFile()) {
+                        fsPromise.copyFile(path.join(way, item.name), path.join(copyWay, item.name));
+                    }else{
+                        folder(path.join(way, item.name), path.join(copyWay, item.name));
+                    }
+                });
+            });
     });
-};
-copyAssets(path.join(__dirname, 'assets'));
+}
+
+folder(path.join(__dirname, 'assets'), wayCopyFolder);
 
 function copyStyleFiles(way){
     fs.readdir(way, {withFileTypes: true}, (err, files)=>{
@@ -61,7 +66,7 @@ fs.readFile(path.join(__dirname, 'template.html'), 'utf-8', async (err, data)=>{
         resolve = res;
     });
 
-    allTemplateTags.forEach((item,index) => {
+    allTemplateTags.forEach( (item,index) => {
         let component_name = item.replace('{{', '').replace('}}', '');
 
         fs.readFile(path.join(__dirname, 'components', `${component_name}.html` ), 'utf-8', (err, data)=>{
