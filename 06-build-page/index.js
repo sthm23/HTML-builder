@@ -2,21 +2,37 @@ const fs = require('fs');
 const fsPromise = require('fs/promises');
 const path = require('path');
 
-fs.access(path.join(__dirname, 'project-dist'), err=>{
-    if(err){
-        const html = fs.createWriteStream(path.join(__dirname, 'project-dist', 'index.html'));
-        const tempHtml = fs.createReadStream(path.join(__dirname, 'template.html'), 'utf-8');
-        tempHtml.pipe(html);
-        htmlCreater(path.join(__dirname, 'template.html'));
-    }else{
-        htmlCreater(path.join(__dirname, 'project-dist', 'index.html'));
-    }
-});
 fs.mkdir(path.join(__dirname, 'project-dist'), {recursive:true}, err=>err);
 let wayCopyFolder = path.join(__dirname, 'project-dist', 'assets');
 fs.mkdir(wayCopyFolder, {recursive:true}, err=>err);
 
 
+let html = fs.createWriteStream(path.join(__dirname, 'project-dist', 'index.html'));
+let htmlTempArr = [];
+let i = 0;
+
+fs.readdir(path.join(__dirname, 'components'), {withFileTypes: true}, (err, data)=>{
+    if(err) console.log(err)
+    data.forEach(item=>{
+        if(path.extname(item.name) === '.html' && item.isFile()){
+            htmlTempArr.push(item.name);
+        }
+    })
+});
+fs.readFile(path.join(__dirname, 'template.html'), 'utf-8', (err, data)=>{
+    if(err) console.log(err);
+    changeIndex(data);
+});
+
+function changeIndex(text, teg = htmlTempArr[0]){
+    fs.readFile(path.join(__dirname, 'components', teg), 'utf-8', (err, data)=>{
+        if(err) console.log(err.message);
+        let changerTag = `{{${teg.split('.')[0]}}}`;
+        text = text.replace(changerTag, data);
+        i++
+        (i === htmlTempArr.length) ? html.write(text) : changeIndex(text, htmlTempArr[i]);
+    });
+}
 
 const css = fs.createWriteStream(path.join(__dirname, 'project-dist', 'style.css'));
 
@@ -58,35 +74,3 @@ function pipingStyleFiles(file){
     rs.pipe(css);
     rs.on('error', err=> console.log(err));
 }
-
-function saveToIndex (str)  {
-    let html = fs.createWriteStream(path.join(__dirname, 'project-dist', 'index.html'));
-    html.write(str);
-}
-function htmlCreater(way){
-    fs.readFile(way, 'utf-8', (err, data)=>{
-        if(err)console.log(err);
-        let templateOrg = data;
-        if(!data.match(/{{(.*?)}}/g)){
-            return '';
-        }
-        let allTemplateTags = data.match(/{{(.*?)}}/g).map( function(val) {
-            return val;
-        });
-    
-        allTemplateTags.forEach( (item,index) => {
-            let component_name = item.replace('{{', '').replace('}}', '');
-    
-            fs.readFile(path.join(__dirname, 'components', `${component_name}.html` ), 'utf-8', (err, data)=>{
-                if(err)console.log(err);
-                
-                templateOrg = templateOrg.replace(item, data);
-                
-                if(allTemplateTags.length -1 === index){
-                    saveToIndex(templateOrg);
-                }
-            }); 
-        });
-    });
-}
-
